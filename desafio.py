@@ -1,6 +1,7 @@
-from dash import Dash, html, dcc, Input, Output
+from dash import Dash, html, dcc, Input, Output, dash_table
 import plotly.express as px
 import pandas as pd
+
 
 # Inicialização do aplicativo Dash
 app = Dash(__name__)
@@ -8,6 +9,14 @@ app = Dash(__name__)
 # Carregar os dados do Excel
 df = pd.read_excel('Desafio-Digital-2023.xlsx', sheet_name='Dados - Questão 1')
 rend = pd.read_excel('Desafio-Digital-2023.xlsx', sheet_name='Dados - Questão 1')
+# Extrair mês e ano da coluna Data_compra
+df['Ano'] = df['Data_compra'].dt.year
+df['Mês'] = df['Data_compra'].dt.month
+
+# Agrupar por loja, ano e mês, somando as quantidades vendidas
+vendas_por_periodo = df.groupby(['Unidade', 'Ano', 'Mês'])['Qtd'].sum().reset_index()
+
+
 
 
 # Calcular a renda de cada venda (quantidade x preço unitário)
@@ -18,6 +27,8 @@ total_vendas = df['Qtd'].sum()
 
 # Calcular a coluna 'Porcentagem de Vendas' para cada produto
 df['Porcentagem de Vendas'] = (df['Qtd'] / total_vendas) * 100
+quantidade_por_produto = df.groupby('Produto')['Qtd'].sum().reset_index()
+
 
 
 # Função para calcular o desconto com base na renda
@@ -34,13 +45,20 @@ renda_por_unidade = rend.groupby('Unidade')['Renda'].sum()
 desconto_por_unidade = renda_por_unidade.apply(calcular_desconto)
 soma_descontos = list(renda_por_unidade)
 
+lucro_por_unidade = renda_por_unidade - desconto_por_unidade
+print(lucro_por_unidade)
 
 
 # Criar gráficos iniciais
 fig_bar = px.bar(df, x="Unidade", y="Qtd", color="Produto", barmode="group")
 fig_renda = px.bar(renda_por_unidade.reset_index(), x="Unidade", y="Renda", title="Renda por Unidade")
 fig_desconto = px.bar(desconto_por_unidade.reset_index(), x="Unidade", y="Renda", title="Desconto por Unidade")
-fig_porcentagem_vendas = px.bar(df, x='Produto', y='Porcentagem de Vendas', color='Produto', title='Porcentagem de Vendas por Produto')
+fig_porcentagem_vendas = px.pie(quantidade_por_produto, values='Qtd', names='Produto', 
+                                      title='Porcentagem de Vendas por Produto')
+fig_vendas_por_periodo = px.line(vendas_por_periodo, x='Ano', y='Qtd', color='Unidade',
+                                 labels={'Qtd': 'Quantidade de Vendas', 'Mês': 'Mês'},
+                                 title='Vendas por Período')
+
 
 
 # Opções para o Dropdown
@@ -73,7 +91,24 @@ app.layout = html.Div(children=[
     dcc.Graph(id='grafico_desconto_unidades', figure=fig_desconto),
     html.H2(f'O valor total dos descontos é  R${sum(soma_descontos)},00'),
     
+    
+   html.H2('Lucro de cada unidade (Descontado os impostos)'),
+    dash_table.DataTable(
+        data=[
+            {'Unidade': 'Amazonas Shopping', 'Lucro': f'R$ {lucro_por_unidade[0]:,.2f}'},
+            {'Unidade': 'Ammazonas Shopping', 'Lucro': f'R$ {lucro_por_unidade[1]:,.2f}'},
+            {'Unidade': 'Avenida', 'Lucro': f'R$ {lucro_por_unidade[2]:,.2f}'},
+            {'Unidade': 'Cidade nova', 'Lucro': f'R$ {lucro_por_unidade[3]:,.2f}'},
+            {'Unidade': 'Eduardo Gomes', 'Lucro': f'R$ {lucro_por_unidade[4]:,.2f}'},
+            {'Unidade': 'Matriz', 'Lucro': f'R$ {lucro_por_unidade[5]:,.2f}'},
+            {'Unidade': 'Nova cidade', 'Lucro': f'R$ {lucro_por_unidade[6]:,.2f}'},
+        ],
+        columns=[{'name': 'Unidade', 'id': 'Unidade'}, {'name': 'Lucro', 'id': 'Lucro'}],
+        style_table={'height': '300px', 'overflowY': 'auto'},
+    ),
     dcc.Graph(id='grafico_porcentagem_vendas', figure=fig_porcentagem_vendas),
+    dcc.Graph(id='grafico_vendas_por_periodo', figure=fig_vendas_por_periodo),
+
 ])
 
 # Callback para atualização da unidade que mais vendeu
