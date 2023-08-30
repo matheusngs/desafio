@@ -16,9 +16,6 @@ df['Mês'] = df['Data_compra'].dt.month
 # Agrupar por loja, ano e mês, somando as quantidades vendidas
 vendas_por_periodo = df.groupby(['Unidade', 'Ano', 'Mês'])['Qtd'].sum().reset_index()
 
-
-
-
 # Calcular a renda de cada venda (quantidade x preço unitário)
 rend['Renda'] = rend['Qtd'] * rend['Valor unitário']
 
@@ -28,8 +25,6 @@ total_vendas = df['Qtd'].sum()
 # Calcular a coluna 'Porcentagem de Vendas' para cada produto
 df['Porcentagem de Vendas'] = (df['Qtd'] / total_vendas) * 100
 quantidade_por_produto = df.groupby('Produto')['Qtd'].sum().reset_index()
-
-
 
 # Função para calcular o desconto com base na renda
 def calcular_desconto(renda):
@@ -48,7 +43,6 @@ soma_descontos = list(renda_por_unidade)
 lucro_por_unidade = renda_por_unidade - desconto_por_unidade
 print(lucro_por_unidade)
 
-
 # Criar gráficos iniciais
 fig_bar = px.bar(df, x="Unidade", y="Qtd", color="Produto", barmode="group")
 fig_renda = px.bar(renda_por_unidade.reset_index(), x="Unidade", y="Renda", title="Renda por Unidade")
@@ -58,8 +52,6 @@ fig_porcentagem_vendas = px.pie(quantidade_por_produto, values='Qtd', names='Pro
 fig_vendas_por_periodo = px.line(vendas_por_periodo, x='Ano', y='Qtd', color='Unidade',
                                  labels={'Qtd': 'Quantidade de Vendas', 'Mês': 'Mês'},
                                  title='Vendas por Período')
-
-
 
 # Opções para o Dropdown
 opcoes = list(df['Unidade'].unique())
@@ -90,8 +82,7 @@ app.layout = html.Div(children=[
 
     dcc.Graph(id='grafico_desconto_unidades', figure=fig_desconto),
     html.H2(f'O valor total dos descontos é  R${sum(soma_descontos)},00'),
-    
-    
+       
    html.H2('Lucro de cada unidade (Descontado os impostos)'),
     dash_table.DataTable(
         data=[
